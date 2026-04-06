@@ -210,6 +210,39 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   font-size: 12px; color: #e8365d;
 }
 
+/* ── Time range bar ── */
+.timerange-bar {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.timerange-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted); margin-bottom: 8px;
+}
+.timerange-label span:last-child { color: var(--accent); font-weight: 600; }
+.months-slider {
+  width: 100%; height: 3px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 2px; outline: none;
+  cursor: pointer;
+}
+.months-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(29,185,84,.2);
+}
+.months-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: none;
+}
+.timerange-ticks {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--muted); margin-top: 5px;
+  padding: 0 2px;
+}
+
 /* ── Progress ── */
 .progress-wrap { margin: 8px 0 16px; }
 .progress-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
@@ -228,10 +261,20 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 </div>
 
 <div id="filters" style="display:none" class="filters">
-  <button class="filter-btn active" onclick="setFilter('all')">Alle</button>
-  <button class="filter-btn" onclick="setFilter('known')">🎵 Meine Künstler</button>
-  <button class="filter-btn" onclick="setFilter('similar')">✨ Ähnliche</button>
-  <button class="filter-btn" onclick="setFilter('soon')">📅 Diese Woche</button>
+  <button class="filter-btn active" onclick="setFilter('all',event)">Alle</button>
+  <button class="filter-btn" onclick="setFilter('known',event)">🎵 Meine Künstler</button>
+  <button class="filter-btn" onclick="setFilter('similar',event)">✨ Ähnliche</button>
+</div>
+<div id="timerange-bar" style="display:none" class="timerange-bar">
+  <div class="timerange-label">
+    <span>📅 Zeitraum:</span>
+    <span id="range-display">Heute — 12 Monate</span>
+  </div>
+  <input type="range" id="months-slider" min="1" max="12" value="12"
+    oninput="onSliderChange(this.value)" class="months-slider"/>
+  <div class="timerange-ticks">
+    <span>1M</span><span>3M</span><span>6M</span><span>9M</span><span>12M</span>
+  </div>
 </div>
 
 <div class="wrap">
@@ -254,6 +297,7 @@ const METRO_AREAS = [
 
 let allConcerts = [];
 let currentFilter = 'all';
+let monthsLimit = 12;
 let userProfile = null;
 
 // ── Spotify PKCE Auth ─────────────────────────────────────────
@@ -399,7 +443,7 @@ async function loadConcerts(token) {
   let topArtists = [];
   try {
     const data = await spotifyGet(
-      'https://api.spotify.com/v1/me/top/artists?limit=20&time_range=medium_term',
+      'https://api.spotify.com/v1/me/top/artists?limit=25&time_range=medium_term',
       token
     );
     topArtists = data.items || [];
@@ -524,28 +568,48 @@ function formatDate(ds) {
   return `${WOTAGE[dt.getDay()]}, ${d}. ${MONATE[m-1]} ${y}`;
 }
 
-function setFilter(f) {
+function setFilter(f, e) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
+  renderConcerts();
+}
+
+function onSliderChange(val) {
+  monthsLimit = parseInt(val);
+  const label = monthsLimit === 1 ? '1 Monat' : monthsLimit + ' Monate';
+  document.getElementById('range-display').textContent = `Heute — ${label}`;
+  // Update slider fill color
+  const slider = document.getElementById('months-slider');
+  const pct = ((val - 1) / 11) * 100;
+  slider.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--border) ${pct}%)`;
   renderConcerts();
 }
 
 function renderConcerts() {
   const today = new Date(); today.setHours(0,0,0,0);
   const todayStr = localDateStr(today);
-  const weekStr = localDateStr(new Date(today.getTime() + 7*86400000));
+  const limitDate = new Date(today);
+  limitDate.setMonth(limitDate.getMonth() + monthsLimit);
+  const limitStr = localDateStr(limitDate);
 
-  let filtered = allConcerts.filter(c => c.date >= todayStr);
+  // Show controls
+  document.getElementById('filters').style.display = 'flex';
+  document.getElementById('timerange-bar').style.display = 'block';
+
+  // Init slider fill on first render
+  const slider = document.getElementById('months-slider');
+  if (slider && slider.style.background === '') {
+    slider.style.background = `linear-gradient(to right, var(--accent) 100%, var(--border) 100%)`;
+  }
+
+  let filtered = allConcerts.filter(c => c.date >= todayStr && c.date <= limitStr);
 
   if (currentFilter === 'known') filtered = filtered.filter(c => c.isKnown);
   if (currentFilter === 'similar') filtered = filtered.filter(c => !c.isKnown);
-  if (currentFilter === 'soon') filtered = filtered.filter(c => c.date <= weekStr);
 
-  const known = allConcerts.filter(c => c.isKnown && c.date >= todayStr).length;
-  const similar = allConcerts.filter(c => !c.isKnown && c.date >= todayStr).length;
-
-  document.getElementById('filters').style.display = 'flex';
+  const known = allConcerts.filter(c => c.isKnown && c.date >= todayStr && c.date <= limitStr).length;
+  const similar = allConcerts.filter(c => !c.isKnown && c.date >= todayStr && c.date <= limitStr).length;
 
   let html = `<div class="status-bar">
     <span class="status-dot"></span>

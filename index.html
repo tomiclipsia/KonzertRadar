@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#0f0f0f"/>
+<title>KonzertRadar Leipzig</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #222;
+  --text: #f0f0f0;
+  --muted: #666;
+  --accent: #1DB954;
+  --accent2: #e8365d;
+  --known: #1DB954;
+  --similar: #f59e0b;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10,10,10,.92);
+  backdrop-filter: blur(12px);
+}
+.logo { font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: -.03em; }
+.logo span { color: var(--accent); }
+.sub { font-size: 11px; color: var(--muted); }
+.spotify-btn {
+  margin-left: auto;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+  transition: transform .1s, opacity .1s;
+}
+.spotify-btn:active { transform: scale(.97); opacity: .9; }
+.spotify-btn.logout { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.user-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px 5px 5px;
+  font-size: 12px; cursor: pointer;
+}
+.user-pill img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+
+/* ── Filters ── */
+.filters {
+  display: flex; gap: 6px; padding: 10px 16px;
+  overflow-x: auto; border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+.filters::-webkit-scrollbar { display: none; }
+.filter-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; cursor: pointer;
+  white-space: nowrap; font-family: var(--font-body);
+  transition: all .15s;
+}
+.filter-btn.active { background: var(--text); color: #000; border-color: var(--text); }
+
+/* ── Content ── */
+.wrap { padding: 14px 16px; max-width: 680px; margin: 0 auto; }
+
+/* ── Login screen ── */
+.login-screen {
+  min-height: 70vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 32px 20px;
+  gap: 16px;
+}
+.login-icon { font-size: 56px; margin-bottom: 4px; }
+.login-title { font-family: var(--font-head); font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+.login-title span { color: var(--accent); }
+.login-desc { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 280px; }
+.login-cta {
+  background: var(--accent); color: #000;
+  border: none; padding: 14px 28px; border-radius: 30px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: var(--font-body); margin-top: 8px;
+  display: flex; align-items: center; gap: 8px;
+  transition: transform .15s;
+}
+.login-cta:active { transform: scale(.97); }
+
+/* ── Loading ── */
+.loading {
+  text-align: center; padding: 48px 20px; color: var(--muted);
+  font-size: 13px;
+}
+.pulse { display: flex; gap: 6px; justify-content: center; margin: 16px auto 0; }
+.pulse span {
+  width: 8px; height: 8px; background: var(--accent);
+  border-radius: 50%; animation: pulse 1.2s ease-in-out infinite;
+}
+.pulse span:nth-child(2) { animation-delay: .2s; }
+.pulse span:nth-child(3) { animation-delay: .4s; }
+@keyframes pulse { 0%,100% { opacity: .2; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
+
+/* ── Status bar ── */
+.status-bar {
+  font-size: 11px; color: var(--muted); padding: 6px 0 12px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+
+/* ── Concert card ── */
+.day-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .1em;
+  padding: 14px 0 6px;
+}
+.concert-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px 14px;
+  margin-bottom: 8px;
+  display: flex; align-items: flex-start; gap: 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  text-decoration: none; color: inherit;
+  position: relative; overflow: hidden;
+}
+.concert-card:active { background: #1a1a1a; }
+.concert-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 14px 0 0 14px;
+}
+.concert-card.known::before { background: var(--known); }
+.concert-card.similar::before { background: var(--similar); }
+
+.artist-img {
+  width: 48px; height: 48px; border-radius: 10px;
+  object-fit: cover; flex-shrink: 0;
+  background: var(--border);
+}
+.artist-img-placeholder {
+  width: 48px; height: 48px; border-radius: 10px;
+  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.card-body { flex: 1; min-width: 0; }
+.artist-name {
+  font-family: var(--font-head); font-weight: 700;
+  font-size: 14px; margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.event-name {
+  font-size: 12px; color: var(--muted); margin-bottom: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-meta { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.pill {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; white-space: nowrap;
+}
+.pill-known { background: rgba(29,185,84,.15); color: var(--known); }
+.pill-similar { background: rgba(245,158,11,.15); color: var(--similar); }
+.pill-venue { background: rgba(255,255,255,.06); color: #888; }
+.pill-city { background: rgba(255,255,255,.06); color: #888; }
+.time-info { font-size: 11px; color: var(--muted); margin-left: auto; text-align: right; flex-shrink: 0; }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty .icon { font-size: 36px; margin-bottom: 10px; }
+.empty p { font-size: 13px; line-height: 1.6; }
+
+/* ── Artists strip ── */
+.artists-strip {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 8px 0 12px; scrollbar-width: none;
+  margin-bottom: 4px;
+}
+.artists-strip::-webkit-scrollbar { display: none; }
+.artist-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 10px 4px 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.artist-chip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.artist-chip span { font-size: 11px; font-weight: 500; }
+
+/* ── Error ── */
+.err {
+  background: rgba(232,54,93,.1); border: 1px solid rgba(232,54,93,.3);
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
+  font-size: 12px; color: #e8365d;
+}
+
+/* ── Progress ── */
+.progress-wrap { margin: 8px 0 16px; }
+.progress-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Konzert<span>Radar</span></div>
+    <div class="sub">Leipzig · Umkreis 100km</div>
+  </div>
+  <div id="header-right"></div>
+</div>
+
+<div id="filters" style="display:none" class="filters">
+  <button class="filter-btn active" onclick="setFilter('all')">Alle</button>
+  <button class="filter-btn" onclick="setFilter('known')">🎵 Meine Künstler</button>
+  <button class="filter-btn" onclick="setFilter('similar')">✨ Ähnliche</button>
+  <button class="filter-btn" onclick="setFilter('soon')">📅 Diese Woche</button>
+</div>
+
+<div class="wrap">
+  <div id="main"></div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+const CLIENT_ID = '2b8b8673f3994d53af1bd818c1f186ca';
+const REDIRECT_URI = 'https://tomiclipsia.github.io/KonzertRadar/';
+const SCOPES = 'user-top-read user-follow-read';
+
+// Leipzig + Umkreis 100km Songkick Metro IDs
+const METRO_AREAS = [
+  { id: 28528, name: 'Leipzig' },
+  { id: 28527, name: 'Halle' },
+  { id: 28548, name: 'Dresden' },
+  { id: 28454, name: 'Erfurt' },
+];
+
+let allConcerts = [];
+let currentFilter = 'all';
+let userProfile = null;
+
+// ── Spotify PKCE Auth ─────────────────────────────────────────
+function generateRandom(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(length)))
+    .map(b => chars[b % chars.length]).join('');
+}
+
+async function sha256(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(hash)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function login() {
+  const verifier = generateRandom(64);
+  const challenge = await sha256(verifier);
+  sessionStorage.setItem('pkce_verifier', verifier);
+
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPES,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+  });
+  window.location = 'https://accounts.spotify.com/authorize?' + params;
+}
+
+async function exchangeToken(code) {
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: CLIENT_ID,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: REDIRECT_URI,
+      code_verifier: verifier,
+    }),
+  });
+  if (!res.ok) throw new Error('Token exchange failed');
+  const data = await res.json();
+  localStorage.setItem('spotify_token', data.access_token);
+  localStorage.setItem('spotify_expires', Date.now() + data.expires_in * 1000);
+  if (data.refresh_token) localStorage.setItem('spotify_refresh', data.refresh_token);
+  // Clean URL
+  window.history.replaceState({}, '', REDIRECT_URI);
+  return data.access_token;
+}
+
+function getToken() {
+  const token = localStorage.getItem('spotify_token');
+  const expires = localStorage.getItem('spotify_expires');
+  if (!token || Date.now() > expires) return null;
+  return token;
+}
+
+async function spotifyGet(url, token) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if (!res.ok) throw new Error('Spotify API error: ' + res.status);
+  return res.json();
+}
+
+// ── Songkick scraping via allorigins ─────────────────────────
+async function searchArtistSongkick(artistName) {
+  try {
+    const url = `https://www.songkick.com/search?utf8=%E2%9C%93&type=artists&query=${encodeURIComponent(artistName)}`;
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // Extract first artist result ID
+    const m = html.match(/href="\/artists\/(\d+-[^"\/]+)"/);
+    if (!m) return null;
+    return m[1]; // e.g. "379603-radiohead"
+  } catch { return null; }
+}
+
+async function getArtistConcerts(artistSlug, artistName, isKnown, artistImg) {
+  const concerts = [];
+  try {
+    // Get upcoming concerts for this artist near Leipzig
+    const url = `https://www.songkick.com/artists/${artistSlug}/calendar?location=sk:28528`;
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return concerts;
+    const html = await res.text();
+
+    // Parse events from HTML
+    const eventRe = /<li[^>]*class="[^"]*event[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
+    const dateRe = /datetime="(\d{4}-\d{2}-\d{2})"/;
+    const nameRe = /class="summary"[^>]*>([^<]+)</;
+    const venueRe = /class="venue-name"[^>]*>([^<]+)</;
+    const cityRe = /class="city-name"[^>]*>([^<]+)</;
+    const linkRe = /href="(\/concerts\/[^"]+)"/;
+
+    let m;
+    while ((m = eventRe.exec(html)) !== null) {
+      const block = m[1];
+      const dateM = block.match(dateRe);
+      const nameM = block.match(nameRe);
+      const venueM = block.match(venueRe);
+      const cityM = block.match(cityRe);
+      const linkM = block.match(linkRe);
+
+      if (!dateM) continue;
+      const city = cityM ? cityM[1].trim() : '';
+
+      // Filter: only Leipzig area cities
+      const validCities = ['Leipzig', 'Halle', 'Dresden', 'Erfurt', 'Chemnitz', 'Jena', 'Weimar', 'Gera'];
+      if (!validCities.some(c => city.includes(c))) continue;
+
+      concerts.push({
+        date: dateM[1],
+        artist: artistName,
+        artistImg,
+        eventName: nameM ? nameM[1].trim() : artistName,
+        venue: venueM ? venueM[1].trim() : '',
+        city,
+        url: linkM ? 'https://www.songkick.com' + linkM[1] : `https://www.songkick.com/artists/${artistSlug}/calendar`,
+        isKnown,
+      });
+    }
+  } catch {}
+  return concerts;
+}
+
+// ── Main flow ─────────────────────────────────────────────────
+async function loadConcerts(token) {
+  const main = document.getElementById('main');
+  allConcerts = [];
+
+  setProgress(0, 'Lade deine Top-Künstler…');
+
+  // 1. Get top artists
+  let topArtists = [];
+  try {
+    const data = await spotifyGet(
+      'https://api.spotify.com/v1/me/top/artists?limit=20&time_range=medium_term',
+      token
+    );
+    topArtists = data.items || [];
+  } catch(e) {
+    showError('Spotify Fehler: ' + e.message);
+    return;
+  }
+
+  setProgress(10, `${topArtists.length} Top-Künstler geladen. Suche ähnliche…`);
+
+  // 2. Get related artists for top 5
+  let relatedMap = {};
+  const seedArtists = topArtists.slice(0, 5);
+  for (const artist of seedArtists) {
+    try {
+      const data = await spotifyGet(
+        `https://api.spotify.com/v1/artists/${artist.id}/related-artists`,
+        token
+      );
+      (data.artists || []).slice(0, 5).forEach(a => {
+        if (!topArtists.find(t => t.id === a.id)) {
+          relatedMap[a.id] = a;
+        }
+      });
+    } catch {}
+    await sleep(100);
+  }
+
+  const relatedArtists = Object.values(relatedMap);
+  const allArtists = [
+    ...topArtists.map(a => ({ ...a, isKnown: true })),
+    ...relatedArtists.map(a => ({ ...a, isKnown: false })),
+  ];
+
+  setProgress(25, `Suche Konzerte für ${allArtists.length} Künstler…`);
+
+  // Show artists strip
+  renderArtistsStrip(topArtists);
+
+  // 3. Search Songkick for each artist
+  let processed = 0;
+  for (const artist of allArtists) {
+    const img = artist.images?.[2]?.url || artist.images?.[0]?.url || null;
+    try {
+      const slug = await searchArtistSongkick(artist.name);
+      if (slug) {
+        const concerts = await getArtistConcerts(slug, artist.name, artist.isKnown, img);
+        allConcerts.push(...concerts);
+      }
+    } catch {}
+    processed++;
+    const pct = 25 + Math.round((processed / allArtists.length) * 70);
+    setProgress(pct, `${processed}/${allArtists.length} Künstler durchsucht… (${allConcerts.length} Konzerte gefunden)`);
+    await sleep(200); // Rate limiting
+  }
+
+  setProgress(100, 'Fertig!');
+
+  // Deduplicate
+  const seen = new Set();
+  allConcerts = allConcerts.filter(c => {
+    const k = `${c.date}|${c.artist}|${c.venue}`;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  // Sort by date
+  allConcerts.sort((a, b) => a.date.localeCompare(b.date));
+
+  renderConcerts();
+}
+
+// ── Render ────────────────────────────────────────────────────
+let progressEl = null;
+
+function setProgress(pct, label) {
+  const main = document.getElementById('main');
+  if (!progressEl) {
+    main.innerHTML = `
+      <div id="artists-strip-wrap"></div>
+      <div class="progress-wrap" id="prog-wrap">
+        <div class="progress-label" id="prog-label"></div>
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      </div>
+      <div class="loading" id="loading-msg">
+        <div class="pulse"><span></span><span></span><span></span></div>
+      </div>`;
+    progressEl = true;
+  }
+  const fill = document.getElementById('prog-fill');
+  const lbl = document.getElementById('prog-label');
+  if (fill) fill.style.width = pct + '%';
+  if (lbl) lbl.textContent = label;
+}
+
+function renderArtistsStrip(artists) {
+  const wrap = document.getElementById('artists-strip-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="artists-strip">${
+    artists.slice(0, 15).map(a => `
+      <div class="artist-chip">
+        ${a.images?.[2]?.url ? `<img src="${a.images[2].url}" alt="">` : '🎵'}
+        <span>${a.name}</span>
+      </div>`).join('')
+  }</div>`;
+}
+
+function showError(msg) {
+  document.getElementById('main').innerHTML = `<div class="err">⚠ ${msg}</div>`;
+}
+
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+const MONATE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const WOTAGE = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+function formatDate(ds) {
+  const [y,m,d] = ds.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return `${WOTAGE[dt.getDay()]}, ${d}. ${MONATE[m-1]} ${y}`;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderConcerts();
+}
+
+function renderConcerts() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = localDateStr(today);
+  const weekStr = localDateStr(new Date(today.getTime() + 7*86400000));
+
+  let filtered = allConcerts.filter(c => c.date >= todayStr);
+
+  if (currentFilter === 'known') filtered = filtered.filter(c => c.isKnown);
+  if (currentFilter === 'similar') filtered = filtered.filter(c => !c.isKnown);
+  if (currentFilter === 'soon') filtered = filtered.filter(c => c.date <= weekStr);
+
+  const known = allConcerts.filter(c => c.isKnown && c.date >= todayStr).length;
+  const similar = allConcerts.filter(c => !c.isKnown && c.date >= todayStr).length;
+
+  document.getElementById('filters').style.display = 'flex';
+
+  let html = `<div class="status-bar">
+    <span class="status-dot"></span>
+    <span>${filtered.length} Konzerte</span>
+    <span style="color:#444">·</span>
+    <span style="color:var(--known)">🎵 ${known} bekannte Künstler</span>
+    <span style="color:#444">·</span>
+    <span style="color:var(--similar)">✨ ${similar} ähnliche</span>
+  </div>`;
+
+  if (filtered.length === 0) {
+    html += `<div class="empty">
+      <div class="icon">🎸</div>
+      <p>Keine Konzerte gefunden für diesen Filter.<br>Versuch einen anderen Zeitraum.</p>
+    </div>`;
+  } else {
+    // Group by date
+    const byDate = {};
+    filtered.forEach(c => {
+      if (!byDate[c.date]) byDate[c.date] = [];
+      byDate[c.date].push(c);
+    });
+
+    Object.entries(byDate).forEach(([date, concerts]) => {
+      html += `<div class="day-label">${formatDate(date)}</div>`;
+      concerts.forEach(c => {
+        const cls = c.isKnown ? 'known' : 'similar';
+        const pillCls = c.isKnown ? 'pill-known' : 'pill-similar';
+        const pillLabel = c.isKnown ? '🎵 Du kennst ihn' : '✨ Ähnlich';
+        html += `<a href="${c.url}" target="_blank" class="concert-card ${cls}">
+          ${c.artistImg
+            ? `<img class="artist-img" src="${c.artistImg}" alt="" loading="lazy">`
+            : `<div class="artist-img-placeholder">🎵</div>`}
+          <div class="card-body">
+            <div class="artist-name">${c.artist}</div>
+            <div class="event-name">${c.eventName !== c.artist ? c.eventName : ''}</div>
+            <div class="card-meta">
+              <span class="pill ${pillCls}">${pillLabel}</span>
+              ${c.venue ? `<span class="pill pill-venue">📍 ${c.venue}</span>` : ''}
+              ${c.city ? `<span class="pill pill-city">${c.city}</span>` : ''}
+            </div>
+          </div>
+        </a>`;
+      });
+    });
+  }
+
+  const main = document.getElementById('main');
+  // Keep artists strip if present
+  const strip = document.getElementById('artists-strip-wrap');
+  const stripHTML = strip ? strip.outerHTML : '';
+  main.innerHTML = stripHTML + html;
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  const main = document.getElementById('main');
+  const headerRight = document.getElementById('header-right');
+
+  // Check for OAuth callback
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+
+  if (code) {
+    main.innerHTML = `<div class="loading">🔑 Verbinde mit Spotify…<div class="pulse"><span></span><span></span><span></span></div></div>`;
+    try {
+      const token = await exchangeToken(code);
+      await startWithToken(token);
+    } catch(e) {
+      main.innerHTML = `<div class="err">⚠ Login fehlgeschlagen: ${e.message}</div>`;
+    }
+    return;
+  }
+
+  // Check existing token
+  const token = getToken();
+  if (token) {
+    await startWithToken(token);
+    return;
+  }
+
+  // Show login screen
+  main.innerHTML = `
+    <div class="login-screen">
+      <div class="login-icon">🎶</div>
+      <div class="login-title">Konzert<span>Radar</span></div>
+      <div class="login-desc">Verbinde deinen Spotify Account und entdecke Konzerte deiner Lieblingskünstler in Leipzig und Umkreis.</div>
+      <button class="login-cta" onclick="login()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Mit Spotify verbinden
+      </button>
+    </div>`;
+}
+
+async function startWithToken(token) {
+  const headerRight = document.getElementById('header-right');
+
+  // Get user profile
+  try {
+    userProfile = await spotifyGet('https://api.spotify.com/v1/me', token);
+    const img = userProfile.images?.[0]?.url;
+    headerRight.innerHTML = `
+      <div class="user-pill" onclick="logout()">
+        ${img ? `<img src="${img}" alt="">` : ''}
+        <span>${userProfile.display_name || 'Eingeloggt'}</span>
+      </div>`;
+  } catch {
+    headerRight.innerHTML = `<button class="spotify-btn logout" onclick="logout()">Ausloggen</button>`;
+  }
+
+  await loadConcerts(token);
+}
+
+function logout() {
+  localStorage.removeItem('spotify_token');
+  localStorage.removeItem('spotify_expires');
+  localStorage.removeItem('spotify_refresh');
+  window.location.reload();
+}
+
+init();
+</script>
+</body>
+</html>
